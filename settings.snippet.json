@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "deny": [
+      "Skill(superpowers:dispatching-parallel-agents)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Skill(superpowers:executing-plans)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"{{CLAUDE_DIR}}/hooks/codegraph-gate.mjs\" pre"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__codegraph__codegraph_explore",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"{{CLAUDE_DIR}}/hooks/codegraph-gate.mjs\" post"
+          }
+        ]
+      }
+    ]
+  }
+}

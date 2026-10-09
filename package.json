@@ -1,0 +1,13 @@
+{
+  "name": "claude-code-kit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "个人 Claude Code 规约套件：代码改动流程 skill + 常驻红线 CLAUDE.md + CodeGraph 检索漏斗 hook",
+  "bin": {
+    "claude-code-kit-install": "./install.mjs"
+  },
+  "engines": {
+    "node": ">=16.7"
+  }
+}
