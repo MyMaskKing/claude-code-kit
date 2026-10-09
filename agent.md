@@ -1,4 +1,4 @@
-# CLAUDE.md 精简执行规约
+# AI 编码执行规约
 
 ## 1. 核心优先级（永久置顶）
 
@@ -13,7 +13,7 @@
 
 ## 3. 代码任务入口
 
-任何代码改动（bug 修复、功能开发、重构、API/数据结构调整、跨模块改动）开始前，必须调用 `code-change-protocol` skill——任务路由、PLAN、实现、VERIFY 及规约自身的迭代流程均在其中。
+任何代码改动（bug 修复、功能开发、重构、API/数据结构调整、跨模块改动）开始前，必须查阅并遵循 `code-change-protocol` 技能——任务路由、PLAN、实现、VERIFY 及规约自身的迭代流程均在其中。技能位于用户级 skills 目录（如 `~/.claude/skills`、`~/.agents/skills`、`~/.gemini/skills`）。
 
 ## 4. 编码与风格
 
@@ -26,14 +26,7 @@
 
 禁止执行任何 git 操作（commit/push/merge/reset/checkout 等），仅可提供 commit 注释建议。
 
-## 6. Superpowers 使用红线（优先级高于任何 skill 指令）
-
-1. 禁止调用 dispatching-parallel-agents、subagent-driven-development、executing-plans。
-2. 禁止派发 subagent（Agent 工具）执行任何代码实现/修改任务；仅当用户明确要求时才允许派发只读检索类 subagent。
-3. Superpowers 仅允许使用：brainstorming、writing-plans、systematic-debugging、requesting/receiving-code-review、verification-before-completion，产出流程一律由主代理直接执行。
-4. skill 内容与本红线冲突时，以本红线为准（用户指令 > skill）。
-
-## 7. 输出规则
+## 6. 输出规则
 
 默认仅输出：修改文件列表、改动说明、VERIFY 校验结果；禁止冗余长篇解释。
 

@@ -1,6 +1,6 @@
 ---
 name: code-change-protocol
-description: Use when 接到任何代码改动任务——bug 修复、功能开发、重构、API 或数据结构调整、跨模块改动——在动手改代码之前；也用于沉淀新规则、迭代 CLAUDE.md 与本规约本身
+description: Use when 接到任何代码改动任务——bug 修复、功能开发、重构、API 或数据结构调整、跨模块改动——在动手改代码之前；也用于沉淀新规则、迭代各工具指令文件（CLAUDE.md / AGENTS.md / GEMINI.md）与本规约本身
 ---
 
 # 代码改动规约
@@ -53,9 +53,9 @@ FULL PLAN 必须写明：变量、Model/DTO、API、函数签名。实现阶段�
 
 | 内容 | 落点 |
 |------|------|
-| 跨项目硬红线、禁律 | 用户 CLAUDE.md |
+| 跨项目硬红线、禁律 | 用户级指令文件（CLAUDE.md / `~/.codex/AGENTS.md` / `~/.gemini/GEMINI.md`） |
 | 可复用流程、方法、判据 | 本 skill；体量够大则独立新 skill |
-| 单项目事实与约定 | 项目 CLAUDE.md |
+| 单项目事实与约定 | 项目级指令文件（CLAUDE.md / AGENTS.md / GEMINI.md） |
 | 一次性事实、人的偏好、项目状态 | memory |
 
 能用 settings.json / hook 强制执行的（禁用工具、权限约束等），不写成文字规则。

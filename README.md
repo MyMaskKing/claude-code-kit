@@ -1,10 +1,10 @@
 # claude-code-kit
 
-个人 Claude Code 规约套件：代码改动流程 skill + 常驻红线 CLAUDE.md + CodeGraph 检索漏斗 hook。跨机器一键安装。
+个人 AI 编码规约套件，一次安装同时适配 **Claude Code / Codex / Gemini CLI**（Cursor、Windsurf、Copilot Coding Agent、Aider、Zed 等读 `AGENTS.md` 的工具同样受益）。
 
 ## 一键安装
 
-**Node.js（推荐，跨平台；Windows 无需 Git Bash）：**
+**Node.js（推荐，跨平台）：**
 
 ```bash
 git clone <你的仓库地址> claude-code-kit
@@ -12,39 +12,48 @@ cd claude-code-kit
 node install.mjs
 ```
 
-**Bash（macOS / Linux / Git Bash）：**
+**Bash（等价，内部转 Node）：**
 
 ```bash
 bash install.sh
 ```
 
-两种方式等价，均需 Node.js ≥ 16.7。安装后**重启 Claude Code**。
+需 Node.js ≥ 16.7。安装后**重启各 AI 工具**。
 
-> 也可 `npm link` 后用 `claude-code-kit-install` 命令安装（可选）。
+> 也可 `npm link` 后用 `claude-code-kit-install` 命令安装。
 
-## 装了什么
+## 装到哪里
 
-| 文件 | 安装位置 | 说明 |
-|------|----------|------|
-| `skills/code-change-protocol/SKILL.md` | `~/.claude/skills/` | 任务路由（DIRECT/LIGHT/FULL）、PLAN、IMPLEMENT、VERIFY、规约演进流程 |
-| `CLAUDE.md` | `~/.claude/CLAUDE.md` | 常驻红线：优先级、禁令、中文/UTF-8、git 限制、Superpowers 红线 |
-| `hooks/codegraph-gate.mjs` | `~/.claude/hooks/` | Grep/Glob 前强制先走两次 CodeGraph 的漏斗 |
-| `settings.snippet.json` | 合并进 `~/.claude/settings.json` | hook 注册 + 三个 superpowers skill 禁用 |
+| 内容 | 位置 |
+|------|------|
+| `code-change-protocol` 技能 | `~/.claude/skills/`、`~/.agents/skills/`（Codex 通用位置）、`~/.gemini/skills/` |
+| Claude 指令 | `~/.claude/CLAUDE.md`（核心 + Superpowers 专属红线） |
+| Codex 指令 | `~/.codex/AGENTS.md`（尊重 `CODEX_HOME`） |
+| Gemini 指令 | `~/.gemini/GEMINI.md` |
+| CodeGraph 漏斗 hook | `~/.claude/hooks/codegraph-gate.mjs` + settings.json 注册（Claude 专属） |
 
-**安全性：** 安装全程非破坏性。已有 `CLAUDE.md` / `settings.json` 先备份为 `*.bak.<时间戳>`；settings 只做并集合并，不覆盖 `env`、token、model 等任何已有配置。仓库本身不含任何密钥。
+**内容来源（单一事实源）：**
 
-## 卸载
+- `agent.md` — 跨工具核心：优先级、红线、代码任务入口、编码风格、Git 限制、输出规则、CodeGraph 说明
+- `supplements/claude.md` — Claude 专属：Superpowers 使用红线
+- 安装器负责组装分发，三份指令文件不手工维护
 
-删除 `~/.claude/skills/code-change-protocol`、`~/.claude/hooks/codegraph-gate.mjs`，用备份还原 `CLAUDE.md` 与 `settings.json`，并手工移除 settings 中对应的 hook/deny 条目。
+**安全性：** 全程非破坏性——内容不同的旧文件备份为 `*.bak.<时间戳>`；settings.json 只做并集合并（不覆盖 `env`、token、model），内容无变化时不备份不重写。仓库不含任何密钥。
+
+## 其他工具
+
+- **Cursor / Windsurf / Aider / Zed / Warp / opencode**：均支持 `AGENTS.md`。把 `agent.md` 复制为项目根或 `~/.codex/AGENTS.md` 即可被读取；Codex 全局文件天然在上述安装位置。
+- **GitHub Copilot（IDE）**：使用项目级 `.github/copilot-instructions.md`，把 `agent.md` 内容粘进去；Copilot Coding Agent（云端）直接读 `AGENTS.md`。
+- 项目级共享：在仓库根放一份 `AGENTS.md`，上述绝大多数工具都会自动加载。
 
 ## 规约如何演进
 
-日常迭代规则（什么情况沉淀、写到哪一层、何时退役旧规则）见 skill 的「规约演进」一节。本仓库与本地 `~/.claude` 内容的同步流程：
+沉淀门槛、分层落点、退役规则见 `code-change-protocol` 技能的「规约演进」一节。同步流程：
 
-1. 改本地 skill / CLAUDE.md 并验证；
-2. 把变更同步回本仓库对应文件；
-3. commit 推送，其他机器 `git pull && bash install.sh` 更新。
+1. 改本地内容并验证；
+2. 把变更同步回本仓库（`agent.md` / `supplements/` / `skills/`）；
+3. commit 推送，其他机器 `git pull && node install.mjs`。
 
 ## 前置依赖
 
-- CodeGraph 检索漏斗仅在含 `.codegraph/` 索引的项目内生效；未索引项目自动放行，无需卸载。
+CodeGraph 漏斗仅在含 `.codegraph/` 索引的项目内生效，未索引项目自动放行。

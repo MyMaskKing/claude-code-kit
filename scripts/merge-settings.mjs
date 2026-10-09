@@ -90,10 +90,13 @@ export function mergeSettings(claudeDir, snippet) {
     }
   }
 
+  const out = JSON.stringify(settings, null, 2) + '\n';
   if (fs.existsSync(settingsPath)) {
-    fs.writeFileSync(path.join(claudeDir, `settings.json.bak.${timestamp()}`), fs.readFileSync(settingsPath));
+    const old = fs.readFileSync(settingsPath, 'utf8');
+    if (old === out) return settings; // 内容无变化：不备份、不重写
+    fs.writeFileSync(path.join(claudeDir, `settings.json.bak.${timestamp()}`), old);
   }
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+  fs.writeFileSync(settingsPath, out);
   return settings;
 }
 
