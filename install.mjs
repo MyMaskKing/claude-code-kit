@@ -40,6 +40,32 @@ const docFiles = [
   { dir: targets.gemini, name: 'GEMINI.md', body: core },
 ];
 
+// 指令文件托管区标记：标记块内由安装器管理（升级只替换块内），块外为用户自定义区、永不触碰
+const MARK_START = '<!-- CODEKIT:START -->';
+const MARK_END = '<!-- CODEKIT:END -->';
+const MARK_RE = /<!-- CODEKIT:START -->[\s\S]*?<!-- CODEKIT:END -->/;
+// 老用户无标记旧文件首次融合时，附在旧文全文前的一次性引导注释
+const MIGRATE_HINT = '<!-- 上方 CODEKIT 标记块内由 claude-code-kit 安装器托管升级；以下为旧版文件全文，已整体迁入用户自定义区，请删除与托管块重复的段落、保留你自己的规则。 -->';
+
+const managedBlock = (body) => `${MARK_START}\n${body.trimEnd()}\n${MARK_END}`;
+
+/**
+ * 融合渲染指令文件，返回 { content, changed, migrated }：
+ * - 旧文件不存在：只写托管块
+ * - 含托管标记：块内替换为最新内容，块外逐字符保留；无变化 changed=false
+ * - 无标记（老用户首次升级）：最新托管块 + 迁移提示 + 旧文件全文（零丢失）
+ */
+function renderDoc(oldContent, body) {
+  const block = managedBlock(body);
+  if (oldContent === null) return { content: `${block}\n`, changed: true, migrated: false };
+  if (MARK_RE.test(oldContent)) {
+    const content = oldContent.replace(MARK_RE, block);
+    return { content, changed: content !== oldContent, migrated: false };
+  }
+  const content = `${block}\n\n${MIGRATE_HINT}\n\n${oldContent.trimEnd()}\n`;
+  return { content, changed: true, migrated: true };
+}
+
 // skills 目标：Claude 原生目录、跨工具通用 ~/.agents/skills、Gemini 目录
 const skillDirs = [
   path.join(targets.claude, 'skills'),
@@ -57,17 +83,22 @@ for (const d of skillDirs) {
 }
 console.log('[1/4] 技能已安装到三个 skills 目录');
 
-// 2. 指令文件（内容不同先备份）
+// 2. 指令文件（融合升级：托管块内更新、块外用户内容原样保留；有变化才备份写入）
+let migrated = 0;
+let skipped = 0;
 for (const f of docFiles) {
   fs.mkdirSync(f.dir, { recursive: true });
   const dst = path.join(f.dir, f.name);
-  const buf = Buffer.from(f.body);
-  if (fs.existsSync(dst) && !fs.readFileSync(dst).equals(buf)) {
-    fs.writeFileSync(path.join(f.dir, `${f.name}.bak.${ts}`), fs.readFileSync(dst));
+  const oldContent = fs.existsSync(dst) ? fs.readFileSync(dst, 'utf8') : null;
+  const { content, changed, migrated: isMigrated } = renderDoc(oldContent, f.body);
+  if (!changed) { skipped += 1; continue; }
+  if (oldContent !== null) {
+    fs.writeFileSync(path.join(f.dir, `${f.name}.bak.${ts}`), oldContent);
   }
-  fs.writeFileSync(dst, buf);
+  fs.writeFileSync(dst, content, 'utf8');
+  if (isMigrated) migrated += 1;
 }
-console.log('[2/4] 三份指令文件已安装（旧文件已备份）');
+console.log(`[2/4] 指令文件已融合安装（首次迁移 ${migrated} 份，无变化跳过 ${skipped} 份；变化的旧文件已备份）`);
 
 // 3. Claude 专属 hook
 fs.mkdirSync(path.join(targets.claude, 'hooks'), { recursive: true });

@@ -23,8 +23,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 源（本仓库内） | 安装目标 | 方式 |
 |------|------|------|
-| `agent.md`（跨工具核心指令） | `~/.codex/AGENTS.md`、`~/.gemini/GEMINI.md` | 整体写入 |
-| `agent.md` + `supplements/claude.md` | `~/.claude/CLAUDE.md` | 拼接（core + supplement） |
+| `agent.md`（跨工具核心指令） | `~/.codex/AGENTS.md`、`~/.gemini/GEMINI.md` | 写入托管块 |
+| `agent.md` + `supplements/claude.md` | `~/.claude/CLAUDE.md` | 拼接后写入托管块（core + supplement） |
 | `skills/`（code-change-protocol） | `~/.claude/skills/`、`~/.agents/skills/`、`~/.gemini/skills/` | `fs.cpSync` 递归覆盖 |
 | `hooks/codegraph-gate.mjs` | `~/.claude/hooks/` | `fs.cpSync` 递归覆盖 |
 | `settings.snippet.json` | `~/.claude/settings.json` | 非破坏性合并（逻辑在 `scripts/merge-settings.mjs`） |
@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 修改 `install.mjs` / `merge-settings.mjs` 时必须保持：
 
-- **指令文件**：目标已存在且与新内容字节不一致时，先备份为 `<文件名>.bak.<UTC时间戳14位>` 再覆盖；内容相同不写。
+- **指令文件（融合安装）**：文件分托管块（`<!-- CODEKIT:START -->` / `<!-- CODEKIT:END -->` 之间，安装器管理）与块外用户自定义区（安装器永不触碰）。已带标记：只替换块内为最新套件、块外逐字符保留，块内无变化则整个文件不写；无标记的老文件首次安装时迁移：先备份为 `<文件名>.bak.<UTC时间戳14位>`，最新套件进托管块、旧文件全文附一行清理提示后整体移入用户区（零丢失，重复段落由用户手工清理一次）。
 - **skills / hooks**：`fs.cpSync` 直接递归覆盖，**不做逐文件备份**——与指令文件的备份策略不同。
 - **settings.json 合并**：已存在的顶层键（`env`、`model` 等）一律不动；`permissions.deny/allow` 取并集去重；hooks 按 `event → matcher` 归组、按归一化后的 `command` 去重（`normCmd` 会展开 `$HOME/$USERPROFILE`、统一盘符与斜杠，使两种写法判为同一条）；snippet 中的 `{{CLAUDE_DIR}}` 占位符合并时替换为目标目录；现有 settings.json 解析失败则中止且不写入；合并结果无变化时不备份、不重写。
 - `scripts/merge-settings.mjs` 既可 CLI 单独运行，也对外导出 `mergeSettings(claudeDir, snippet)`，install.mjs 通过该函数复用同一份逻辑。
