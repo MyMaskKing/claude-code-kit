@@ -41,6 +41,8 @@ FULL PLAN 必须写明：变量、Model/DTO、API、函数签名。实现阶段�
 
 优先已安装的 Skill / MCP / 插件。代码关系类问题走 CodeGraph：业务自然语言首查 → 技术词（DOM id、class、函数名片段）重查 → 两次不中才允许 Grep/Glob/Read 兜底，并在交付说明中讲清降级原因。hook 已强制执行；禁止为凑规则无意义调用工具。
 
+CodeGraph 返回繁忙/超时/database is locked 时：重试一次，仍失败走 Grep/Glob/Read 兜底并在交付说明讲清降级原因，勿连续猛调。两个繁忙高峰：会话刚启动的 catch-up reconcile、大批量文件改动（切分支/install/build）后。锁死不恢复用 `codegraph daemon` 重启或 `codegraph unlock`，禁止手删 `.codegraph/`（全量重建代价大）。索引减负用项目根 `codegraph.json` 的 `exclude`（node_modules/dist 等已内置忽略），改后执行 `codegraph index` 重建。
+
 ## 6. 规约演进（本套规则如何迭代）
 
 **沉淀信号（满足其一才触发）：**
