@@ -62,7 +62,7 @@ CodeGraph 返回繁忙/超时/database is locked 时：重试一次，仍失败�
 
 能用 settings.json / hook 强制执行的（禁用工具、权限约束等），不写成文字规则。
 
-**变更流程：** 提议（规则原文 + 落点 + 理由）→ 用户确认 → 最小改动落盘 → 顺手检查重复与失效条目，合并或退役。
+**变更流程：** 提议（规则原文 + 落点 + 理由）→ 用户确认 → 最小改动落盘 → 顺手检查重复与失效条目，合并或退役 → 若落点是 claude-code-kit 套件仓库的分发源文件（`agent.md`、`supplements/`、`skills/`、`hooks/`、`settings.snippet.json`），立即在仓库根执行 `node install.mjs` 把变更同步到本机生效副本并回报安装输出；项目级指令、memory 的改动不触发。git commit/push 始终由用户执行。
 
 **退役：** 规则连续不适用、被配置取代、或与新规则冲突 → 提议删除，同样需确认。
 
