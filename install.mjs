@@ -4,6 +4,7 @@
  *
  * 安装内容：
  *   - code-change-protocol 技能 → 三个用户级 skills 目录
+ *   - 通用教训库 lessons/ → 三个用户级目录下的 lessons/
  *   - 跨工具核心指令 agent.md → CLAUDE.md / ~/.codex/AGENTS.md / ~/.gemini/GEMINI.md
  *   - Claude 专属：Superpowers 追加段、codegraph-gate hook、settings.json 非破坏性合并
  *
@@ -73,15 +74,26 @@ const skillDirs = [
   path.join(targets.gemini, 'skills'),
 ];
 
+// lessons 教训库目标：与 skills 同构，复制到三家根下的 lessons/
+const lessonDirs = [
+  path.join(targets.claude, 'lessons'),
+  path.join(targets.agents, 'lessons'),
+  path.join(targets.gemini, 'lessons'),
+];
+
 console.log('安装目标：');
 for (const t of docFiles) console.log(`  ${t.dir}${path.sep}${t.name}`);
 
-// 1. skills（三处，递归覆盖）
+// 1. skills 与 lessons（各三处，递归覆盖，不做逐文件备份）
 for (const d of skillDirs) {
   fs.mkdirSync(d, { recursive: true });
   fs.cpSync(path.join(REPO_DIR, 'skills'), d, { recursive: true });
 }
-console.log('[1/4] 技能已安装到三个 skills 目录');
+for (const d of lessonDirs) {
+  fs.mkdirSync(d, { recursive: true });
+  fs.cpSync(path.join(REPO_DIR, 'lessons'), d, { recursive: true });
+}
+console.log('[1/4] 技能与教训库已安装到三个目录');
 
 // 2. 指令文件（融合升级：托管块内更新、块外用户内容原样保留；有变化才备份写入）
 let migrated = 0;

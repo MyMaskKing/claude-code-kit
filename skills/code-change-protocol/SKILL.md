@@ -23,6 +23,8 @@ description: Use when 接到任何代码改动任务——bug 修复、功能开
 
 PLAN 只写实时计划（做什么、分几步）与核心内容：变量、Model/DTO、API、函数签名等契约定义；不写实现代码（函数体、具体逻辑）。实现阶段只能使用 PLAN 定义的内容，禁止额外新增。不确定实现立刻停止，向用户确认。
 
+**留痕（仅 FULL 档）：** FULL 档 PLAN 必须写入项目 `.ai/plans/YYYY-MM-DD-<中文主题>.md`（目录不存在则创建，并按全局规约第 7 节确保项目 `.gitignore` 含 `.ai/`），控制台只给文件路径与极简摘要，经用户确认后再实现，不得只在控制台口述；文件保留不删。`<中文主题>` 必须是规划的核心内容说明，用中文简明命名，禁用 plan、规划、tracing、留痕等过程词。DIRECT 档无 PLAN；LIGHT 档极简 PLAN（≤5 行）仍在控制台进行，不写文件。
+
 ## 3. IMPLEMENT
 
 新增前必走：
@@ -36,6 +38,11 @@ PLAN 只写实时计划（做什么、分几步）与核心内容：变量、Mod
 ## 4. VERIFY（交付前必做）
 
 自查：未定义变量、类型错误、缺失导入、调用断裂、运行风险；失败先修复再输出。仓库无自动化测试时如实说明，不把「起服务」当测试通过。
+
+- 执行写入类脚本/安装器前，核对环境变量重定向、缺省目标与当前工作目录，先沙盒后真实（详见用户级 `lessons/check-target-before-write.md`）。
+- 同一问题连续 2 次推测与用户反馈或真实日志冲突，禁止第 3 次臆测，必须加日志探针或取真机日志取证（详见用户级 `lessons/logs-after-two-sims.md`）。
+
+**沉淀检查：** 交付前对照第 6 节沉淀信号，本次有值得记忆的决策、事实或教训时，立即按全局规约第 7 节落点写盘（项目记忆进 `.ai/memory/`，通用教训提议进套件），再交付。
 
 ## 5. 检索定位
 
@@ -57,12 +64,15 @@ CodeGraph 返回繁忙/超时/database is locked 时：重试一次，仍失败�
 |------|------|
 | 跨项目硬红线、禁律 | 用户级指令文件（CLAUDE.md / `~/.codex/AGENTS.md` / `~/.gemini/GEMINI.md`） |
 | 可复用流程、方法、判据 | 本 skill；体量够大则独立新 skill |
-| 单项目事实与约定 | 项目级指令文件（CLAUDE.md / AGENTS.md / GEMINI.md） |
-| 一次性事实、人的偏好、项目状态 | memory |
+| 跨项目教训案例详情（现象/根因/适用边界） | 套件 `lessons/`（规则正文仍进指令文件或本 skill，`INDEX.md` 登记） |
+| 项目必守规则 | 项目级指令文件（CLAUDE.md / AGENTS.md / GEMINI.md） |
+| 项目事实、决策、意志、坑 | 项目 `.ai/memory/`（主题分卷，见全局规约第 7 节） |
+| FULL 档 PLAN | 项目 `.ai/plans/YYYY-MM-DD-<中文主题>.md`（留痕，不删除） |
+| 一次性事实、本机环境 | 工具原生本地 memory（不迁移） |
 
 能用 settings.json / hook 强制执行的（禁用工具、权限约束等），不写成文字规则。
 
-**变更流程：** 提议（规则原文 + 落点 + 理由）→ 用户确认 → 最小改动落盘 → 顺手检查重复与失效条目，合并或退役 → 若落点是 claude-code-kit 套件仓库的分发源文件（`agent.md`、`supplements/`、`skills/`、`hooks/`、`settings.snippet.json`），立即在仓库根执行 `node install.mjs` 把变更同步到本机生效副本并回报安装输出；项目级指令、memory 的改动不触发。git commit/push 始终由用户执行。
+**变更流程：** 提议（规则原文 + 落点 + 理由）→ 用户确认 → 最小改动落盘 → 顺手检查重复与失效条目，合并或退役 → 若落点是 claude-code-kit 套件仓库的分发源文件（`agent.md`、`supplements/`、`skills/`、`lessons/`、`hooks/`、`settings.snippet.json`），立即在仓库根执行 `node install.mjs` 把变更同步到本机生效副本并回报安装输出；项目级指令、memory 的改动不触发。git commit/push 始终由用户执行。
 
 **退役：** 规则连续不适用、被配置取代、或与新规则冲突 → 提议删除，同样需确认。
 

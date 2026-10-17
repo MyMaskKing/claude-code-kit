@@ -42,7 +42,7 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 - 已带托管标记：只替换块内内容，块外个人规则逐字符保留；块内无变化则该文件不写入；
 - **更早安装的老用户**（文件中还没有标记）：首次升级自动迁移——最新套件写入托管块，旧文件**全文**移入用户区并附一行清理提示，零丢失；按提示删掉与托管块重复的旧段落即可，此后升级全自动融合；
 - 变化的旧文件写入前备份为 `*.bak.<UTC时间戳>`；
-- skills / hook：递归覆盖为最新版本（不逐文件备份）；
+- skills / lessons / hook：递归覆盖为最新版本（不逐文件备份）；
 - settings.json 只做并集合并，已有 `env`、model、权限等不被覆盖。
 
 升级后**重启各 AI 工具**。个人规则请写在标记块之外；托管块内的改动下次升级时会被覆盖。
@@ -52,6 +52,7 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 | 内容 | 位置 |
 |------|------|
 | `code-change-protocol` 技能 | `~/.claude/skills/`、`~/.agents/skills/`（Codex 通用位置）、`~/.gemini/skills/` |
+| 通用教训案例库 `lessons/` | `~/.claude/lessons/`、`~/.agents/lessons/`、`~/.gemini/lessons/` |
 | Claude 指令 | `~/.claude/CLAUDE.md`（核心 + Superpowers 专属红线） |
 | Codex 指令 | `~/.codex/AGENTS.md`（尊重 `CODEX_HOME`） |
 | Gemini 指令 | `~/.gemini/GEMINI.md` |
@@ -64,6 +65,7 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 | `agent.md` | ✅ 核心 | 跨工具核心规约：优先级、红线、代码任务入口、编码风格、Git 限制、输出规则、CodeGraph 说明 | 是，整体写入三份指令文件 |
 | `supplements/claude.md` | ✅ 核心 | Claude 专属补充：Superpowers 使用红线 | 是，拼接到 `~/.claude/CLAUDE.md` 末尾 |
 | `skills/code-change-protocol/SKILL.md` | ✅ 核心 | 改动流程技能：任务路由、PLAN、实现、VERIFY、检索漏斗、规约演进 | 是，复制到三个 skills 目录 |
+| `lessons/`（INDEX + 案例） | ✅ 核心 | 跨项目通用教训案例详情：现象、根因、适用边界 | 是，复制到三个 lessons 目录 |
 | `CLAUDE.md`（仓库根） | ❌ 非核心 | 本仓库自身的开发指引（安装器架构、非破坏性契约、沙盒验证） | 否，仅在本仓库工作时读取 |
 | `README.md` | ❌ 非核心 | 项目说明：安装、升级、文件用途 | 否 |
 
@@ -82,7 +84,7 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 沉淀门槛、分层落点、退役规则见 `code-change-protocol` 技能的「规约演进」一节。同步流程：
 
 1. 改本地内容并验证；
-2. 把变更同步回本仓库（`agent.md` / `supplements/` / `skills/`）；
+2. 把变更同步回本仓库（`agent.md` / `supplements/` / `skills/` / `lessons/`）；
 3. commit 推送，其他机器 `git pull && node install.mjs`。
 
 ## 前置依赖
