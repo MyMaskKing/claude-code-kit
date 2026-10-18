@@ -67,33 +67,87 @@ function renderDoc(oldContent, body) {
   return { content, changed: true, migrated: true };
 }
 
-// skills 目标：Claude 原生目录、跨工具通用 ~/.agents/skills、Gemini 目录
-const skillDirs = [
-  path.join(targets.claude, 'skills'),
-  path.join(targets.agents, 'skills'),
-  path.join(targets.gemini, 'skills'),
-];
+// 每个目标根的分发清单文件名：记录本根已安装的套件文件，升级时据此清理已下架分发物
+const MANIFEST_NAME = '.codekit-manifest.json';
 
-// lessons 教训库目标：与 skills 同构，复制到三家根下的 lessons/
-const lessonDirs = [
-  path.join(targets.claude, 'lessons'),
-  path.join(targets.agents, 'lessons'),
-  path.join(targets.gemini, 'lessons'),
-];
+/**
+ * 递归列出源目录下全部文件，返回带 prefix 前缀、以 / 分隔的相对路径数组（排序稳定）。
+ * 源目录缺失时直接抛错——预扫描发生在任何写入之前，不留半成品。
+ */
+function listSourceFiles(srcDir, prefix) {
+  const out = [];
+  const walk = (dir, rel) => {
+    for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+      const next = rel ? `${rel}/${ent.name}` : ent.name;
+      if (ent.isDirectory()) walk(path.join(dir, ent.name), next);
+      else if (ent.isFile()) out.push(`${prefix}/${next}`);
+    }
+  };
+  walk(srcDir, '');
+  return out.sort();
+}
+
+// 预扫描三类源目录（skills/lessons 分发三家，hooks 仅 Claude 一家）
+const sourceFiles = {
+  skills: listSourceFiles(path.join(REPO_DIR, 'skills'), 'skills'),
+  lessons: listSourceFiles(path.join(REPO_DIR, 'lessons'), 'lessons'),
+  hooks: listSourceFiles(path.join(REPO_DIR, 'hooks'), 'hooks'),
+};
+
+/**
+ * 把一类分发物（prefix: skills/lessons/hooks）清单化镜像到目标根：
+ * 1. 旧清单记录过、本次不再分发的文件删除，并自底向上清理变空的目录（止于 prefix 根）；
+ * 2. cpSync 递归覆盖；3. 写回新清单。
+ * 无旧清单或清单损坏时跳过清理（首装/容错），安装照常并重建清单；
+ * 清单外的用户自有文件永不删除。
+ */
+function deployGroup(root, prefix, relFiles) {
+  const manifestPath = path.join(root, MANIFEST_NAME);
+  let manifest = null;
+  try { manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')); }
+  catch { manifest = null; }
+
+  const oldFiles = manifest?.files?.[prefix];
+  if (Array.isArray(oldFiles)) {
+    const freshSet = new Set(relFiles);
+    const prefixRoot = path.join(root, prefix);
+    for (const rel of oldFiles) {
+      if (freshSet.has(rel)) continue;
+      const segs = rel.split('/');
+      if (segs[0] !== prefix || segs.some((s) => !s || s === '.' || s === '..')) continue;
+      const abs = path.join(root, ...segs);
+      try { fs.rmSync(abs); } catch { continue; }
+      let dir = path.dirname(abs);
+      while (dir !== prefixRoot) {
+        try { fs.rmdirSync(dir); } catch { break; } // 目录非空即停止上溯
+        dir = path.dirname(dir);
+      }
+    }
+  }
+
+  fs.mkdirSync(path.join(root, prefix), { recursive: true });
+  fs.cpSync(path.join(REPO_DIR, prefix), path.join(root, prefix), { recursive: true });
+
+  if (!manifest || manifest.version !== 1 || !manifest.files || typeof manifest.files !== 'object') {
+    manifest = { version: 1, files: {} };
+  }
+  for (const k of ['skills', 'lessons', 'hooks']) {
+    if (!Array.isArray(manifest.files[k])) manifest.files[k] = [];
+  }
+  manifest.files[prefix] = relFiles;
+  manifest.installedAt = new Date().toISOString();
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+}
 
 console.log('安装目标：');
 for (const t of docFiles) console.log(`  ${t.dir}${path.sep}${t.name}`);
 
-// 1. skills 与 lessons（各三处，递归覆盖，不做逐文件备份）
-for (const d of skillDirs) {
-  fs.mkdirSync(d, { recursive: true });
-  fs.cpSync(path.join(REPO_DIR, 'skills'), d, { recursive: true });
+// 1. skills 与 lessons（各三处，清单化镜像：覆盖新版并按旧清单清理下架文件，不做逐文件备份）
+for (const root of [targets.claude, targets.agents, targets.gemini]) {
+  deployGroup(root, 'skills', sourceFiles.skills);
+  deployGroup(root, 'lessons', sourceFiles.lessons);
 }
-for (const d of lessonDirs) {
-  fs.mkdirSync(d, { recursive: true });
-  fs.cpSync(path.join(REPO_DIR, 'lessons'), d, { recursive: true });
-}
-console.log('[1/4] 技能与教训库已安装到三个目录');
+console.log('[1/4] 技能与教训库已清单化镜像安装到三个目录');
 
 // 2. 指令文件（融合升级：托管块内更新、块外用户内容原样保留；有变化才备份写入）
 let migrated = 0;
@@ -112,9 +166,8 @@ for (const f of docFiles) {
 }
 console.log(`[2/4] 指令文件已融合安装（首次迁移 ${migrated} 份，无变化跳过 ${skipped} 份；变化的旧文件已备份）`);
 
-// 3. Claude 专属 hook
-fs.mkdirSync(path.join(targets.claude, 'hooks'), { recursive: true });
-fs.cpSync(path.join(REPO_DIR, 'hooks'), path.join(targets.claude, 'hooks'), { recursive: true });
+// 3. Claude 专属 hook（仅 .claude 一家，同样清单化镜像）
+deployGroup(targets.claude, 'hooks', sourceFiles.hooks);
 console.log('[3/4] CodeGraph hook 已安装');
 
 // 4. Claude settings.json 非破坏性合并

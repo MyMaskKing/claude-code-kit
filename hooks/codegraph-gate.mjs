@@ -58,6 +58,10 @@ function purge(state) {
   }
 }
 
+// 逃生舱：CodeGraph MCP 不可用（未配置/被禁用）时无法靠 explore 计数解锁，
+// 设置 CODEKIT_GATE=off（或 0/false）临时放行；恢复后立即移除，不作为常规降级路径
+if (['off', '0', 'false'].includes((process.env.CODEKIT_GATE || '').trim().toLowerCase())) process.exit(0);
+
 const mode = process.argv[2] || 'pre';
 const payload = readPayload();
 if (!payload || !payload.session_id) process.exit(0);
@@ -93,6 +97,7 @@ process.stderr.write(
   '⛔ 代码定位漏斗：本会话在该已索引项目中 CodeGraph 仅使用 ' + st.cg + ' 次。\n' +
   '请先调用 mcp__codegraph__codegraph_explore：第 1 次用业务自然语言；未命中则第 2 次改用技术词' +
   '（DOM id、class 名、函数名片段）。\n' +
-  '两次 explore 后才可使用 Grep / Glob 精准检索。若确认 CodeGraph 对该区域索引缺失，连续两次 explore 后即自动放行。\n'
+  '两次 explore 后才可使用 Grep / Glob 精准检索。若确认 CodeGraph 对该区域索引缺失，连续两次 explore 后即自动放行。\n' +
+  'CodeGraph MCP 不可用时的临时逃生舱：在 settings.json 的 env 或系统环境变量设置 CODEKIT_GATE=off 放行，恢复后请移除。\n'
 );
 process.exit(2);

@@ -42,7 +42,7 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 - 已带托管标记：只替换块内内容，块外个人规则逐字符保留；块内无变化则该文件不写入；
 - **更早安装的老用户**（文件中还没有标记）：首次升级自动迁移——最新套件写入托管块，旧文件**全文**移入用户区并附一行清理提示，零丢失；按提示删掉与托管块重复的旧段落即可，此后升级全自动融合；
 - 变化的旧文件写入前备份为 `*.bak.<UTC时间戳>`；
-- skills / lessons / hook：递归覆盖为最新版本（不逐文件备份）；
+- skills / lessons / hook：**清单化镜像**为最新版本——按目标根的 `.codekit-manifest.json` 清理源仓库已下架的旧文件与变空的目录，清单之外你自己放进去的文件永不删除（不逐文件备份）；
 - settings.json 只做并集合并，已有 `env`、model、权限等不被覆盖。
 
 升级后**重启各 AI 工具**。个人规则请写在标记块之外；托管块内的改动下次升级时会被覆盖。
@@ -89,4 +89,4 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 
 ## 前置依赖
 
-CodeGraph 漏斗仅在含 `.codegraph/` 索引的项目内生效，未索引项目自动放行。
+CodeGraph 漏斗仅在含 `.codegraph/` 索引的项目内生效，未索引项目自动放行。CodeGraph MCP 不可用导致检索被 hook 拦截时，可在 settings.json 的 `env` 或系统环境变量设置 `CODEKIT_GATE=off` 临时放行（恢复后立即移除，不是常规关闭开关）。
