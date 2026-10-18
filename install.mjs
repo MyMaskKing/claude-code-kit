@@ -88,9 +88,12 @@ function listSourceFiles(srcDir, prefix) {
 }
 
 // 预扫描三类源目录（skills/lessons 分发三家，hooks 仅 Claude 一家）
+// skills/hooks 是套件本体，源缺失属仓库不完整，预扫描即抛错（先于任何写入）；
+// lessons 是可选分发物（是否随仓库分发由用户自行决定），源缺失记 null，安装时警告跳过
+const lessonsSrc = path.join(REPO_DIR, 'lessons');
 const sourceFiles = {
   skills: listSourceFiles(path.join(REPO_DIR, 'skills'), 'skills'),
-  lessons: listSourceFiles(path.join(REPO_DIR, 'lessons'), 'lessons'),
+  lessons: fs.existsSync(lessonsSrc) ? listSourceFiles(lessonsSrc, 'lessons') : null,
   hooks: listSourceFiles(path.join(REPO_DIR, 'hooks'), 'hooks'),
 };
 
@@ -145,9 +148,14 @@ for (const t of docFiles) console.log(`  ${t.dir}${path.sep}${t.name}`);
 // 1. skills 与 lessons（各三处，清单化镜像：覆盖新版并按旧清单清理下架文件，不做逐文件备份）
 for (const root of [targets.claude, targets.agents, targets.gemini]) {
   deployGroup(root, 'skills', sourceFiles.skills);
-  deployGroup(root, 'lessons', sourceFiles.lessons);
+  // lessons 源缺失：整组跳过（不清理、不改清单、不动已装旧文件），其余安装照常
+  if (sourceFiles.lessons !== null) deployGroup(root, 'lessons', sourceFiles.lessons);
 }
-console.log('[1/4] 技能与教训库已清单化镜像安装到三个目录');
+if (sourceFiles.lessons === null) {
+  console.warn('[1/4] 警告：源目录 lessons/ 不存在，已跳过教训库分发（技能、指令文件、hook、settings 照常安装）');
+} else {
+  console.log('[1/4] 技能与教训库已清单化镜像安装到三个目录');
+}
 
 // 2. 指令文件（融合升级：托管块内更新、块外用户内容原样保留；有变化才备份写入）
 let migrated = 0;

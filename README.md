@@ -20,6 +20,8 @@ bash install.sh
 
 需 Node.js ≥ 16.7。安装后**重启各 AI 工具**。
 
+> `lessons/` 是否随仓库分发由你自行决定（默认在 `.gitignore` 中）：源目录缺失时安装器只跳过教训库并给出警告，技能、指令文件、hook、settings 照常安装，不会失败。
+
 > 也可 `npm link` 后用 `claude-code-kit-install` 命令安装。
 
 ## 升级（已安装用户）
