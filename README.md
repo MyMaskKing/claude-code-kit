@@ -58,7 +58,7 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 | Claude 指令 | `~/.claude/CLAUDE.md`（核心 + Superpowers 专属红线） |
 | Codex 指令 | `~/.codex/AGENTS.md`（尊重 `CODEX_HOME`） |
 | Gemini 指令 | `~/.gemini/GEMINI.md` |
-| CodeGraph 漏斗 hook | `~/.claude/hooks/codegraph-gate.mjs` + settings.json 注册（Claude 专属） |
+| 检索漏斗 hook（CodeGraph + Semble 双漏斗） | `~/.claude/hooks/codegraph-gate.mjs` + settings.json 注册（Claude 专属） |
 
 **仓库内的 Markdown 文件：**
 
@@ -91,4 +91,4 @@ node install.mjs   # 等价：bash install.sh 或 claude-code-kit-install
 
 ## 前置依赖
 
-CodeGraph 漏斗仅在含 `.codegraph/` 索引的项目内生效，未索引项目自动放行。CodeGraph MCP 不可用导致检索被 hook 拦截时，可在 settings.json 的 `env` 或系统环境变量设置 `CODEKIT_GATE=off` 临时放行（恢复后立即移除，不是常规关闭开关）。
+CodeGraph 漏斗仅在含 `.codegraph/` 索引的项目内生效，未索引项目自动放行。Semble 与 CodeGraph 两条检索漏斗任一完成两次检索即解锁 Grep/Glob；未安装 Semble MCP 时其计数恒为 0，自动退化为 CodeGraph 单漏斗，不影响使用。CodeGraph MCP 不可用导致检索被 hook 拦截时，可在 settings.json 的 `env` 或系统环境变量设置 `CODEKIT_GATE=off` 临时放行（恢复后立即移除，不是常规关闭开关）。

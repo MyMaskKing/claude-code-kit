@@ -20,7 +20,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "mcp__codegraph__codegraph_explore",
+        "matcher": "mcp__codegraph__codegraph_explore|mcp__semble__search|mcp__semble__find_related",
         "hooks": [
           {
             "type": "command",

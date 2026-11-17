@@ -4,10 +4,10 @@
  *
  * 用法（由 settings.json 的 hooks 调用，payload 经 stdin 传入）:
  *   node codegraph-gate.mjs pre    PreToolUse：Grep 执行前判定，不合规 exit 2 阻止
- *   node codegraph-gate.mjs post   PostToolUse：记录 CodeGraph / Serena 使用次数
+ *   node codegraph-gate.mjs post   PostToolUse：记录 CodeGraph / Semble 使用次数
  *
  * 状态文件: ~/.claude/.codegraph-gate-state.json
- *   按 session_id + 索引根 隔离计数: { cg: CodeGraph 次数 }
+ *   按 session_id + 索引根 隔离计数: { cg: CodeGraph 次数, sb: Semble 次数 }
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -73,11 +73,14 @@ if (!root) process.exit(0);
 const key = payload.session_id + '::' + root;
 
 if (mode === 'post') {
-  // CodeGraph / Serena 各记一次；其它工具的 post 触发不计数
+  // CodeGraph / Semble 各记一次；其它工具的 post 触发不计数
   const state = readState();
   purge(state);
-  const st = state[key] || { cg: 0 };
+  const st = state[key] || { cg: 0, sb: 0 };
+  st.cg ||= 0;
+  st.sb ||= 0;
   if (payload.tool_name === 'mcp__codegraph__codegraph_explore') st.cg += 1;
+  else if (payload.tool_name === 'mcp__semble__search' || payload.tool_name === 'mcp__semble__find_related') st.sb += 1;
   else process.exit(0);
   st.ts = Date.now();
   state[key] = st;
@@ -85,19 +88,21 @@ if (mode === 'post') {
   process.exit(0);
 }
 
-// mode === 'pre'：漏斗判定
+// mode === 'pre'：漏斗判定（Semble 定位漏斗与 CodeGraph 关系漏斗任选其一，各满两次即解锁）
 const state = readState();
 purge(state);
 writeState(state);
-const st = state[key] || { cg: 0 };
-// CodeGraph 已查两次（业务词 + 技术词）→ 允许降级 Grep / Glob
-if (st.cg >= 2) process.exit(0);
+const st = state[key] || { cg: 0, sb: 0 };
+st.cg ||= 0;
+st.sb ||= 0;
+// 任一漏斗已查两次（业务词 + 技术词）→ 允许降级 Grep / Glob；两条漏斗独立计数、不合计
+if (st.cg >= 2 || st.sb >= 2) process.exit(0);
 
 process.stderr.write(
-  '⛔ 代码定位漏斗：本会话在该已索引项目中 CodeGraph 仅使用 ' + st.cg + ' 次。\n' +
-  '请先调用 mcp__codegraph__codegraph_explore：第 1 次用业务自然语言；未命中则第 2 次改用技术词' +
-  '（DOM id、class 名、函数名片段）。\n' +
-  '两次 explore 后才可使用 Grep / Glob 精准检索。若确认 CodeGraph 对该区域索引缺失，连续两次 explore 后即自动放行。\n' +
-  'CodeGraph MCP 不可用时的临时逃生舱：在 settings.json 的 env 或系统环境变量设置 CODEKIT_GATE=off 放行，恢复后请移除。\n'
+  '⛔ 代码定位漏斗：本会话在该已索引项目中 Semble 仅使用 ' + st.sb + ' 次、CodeGraph 仅使用 ' + st.cg + ' 次。\n' +
+  '请先完成任一漏斗的两次检索（第 1 次业务自然语言；未命中第 2 次改用技术词）后再使用 Grep / Glob：\n' +
+  '- 代码定位：mcp__semble__search / mcp__semble__find_related（技术词：类名、方法名、DOM id、class、函数名片段）；\n' +
+  '- 代码关系（调用链、跨文件依赖、修改影响范围）：mcp__codegraph__codegraph_explore。\n' +
+  '任一漏斗两次检索均无有效结果即自动放行。MCP 不可用时的临时逃生舱：在 settings.json 的 env 或系统环境变量设置 CODEKIT_GATE=off 放行，恢复后请移除。\n'
 );
 process.exit(2);

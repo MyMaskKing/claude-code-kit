@@ -40,16 +40,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **指令文件（融合安装）**：文件分托管块（`<!-- CODEKIT:START -->` / `<!-- CODEKIT:END -->` 之间，安装器管理）与块外用户自定义区（安装器永不触碰）。已带标记：只替换块内为最新套件、块外逐字符保留，块内无变化则整个文件不写；无标记的老文件首次安装时迁移：先备份为 `<文件名>.bak.<UTC时间戳14位>`，最新套件进托管块、旧文件全文附一行清理提示后整体移入用户区（零丢失，重复段落由用户手工清理一次）。
 - **skills / lessons / hooks**：`fs.cpSync` 直接递归覆盖，**不做逐文件备份**——与指令文件的备份策略不同。
-- **settings.json 合并**：已存在的顶层键（`env`、`model` 等）一律不动；`permissions.deny/allow` 取并集去重；hooks 按 `event → matcher` 归组、按归一化后的 `command` 去重（`normCmd` 会展开 `$HOME/$USERPROFILE`、统一盘符与斜杠，使两种写法判为同一条）；snippet 中的 `{{CLAUDE_DIR}}` 占位符合并时替换为目标目录；现有 settings.json 解析失败则中止且不写入；合并结果无变化时不备份、不重写。
+- **settings.json 合并**：已存在的顶层键（`env`、`model` 等）一律不动；`permissions.deny/allow` 取并集去重；hooks 按 `event → matcher` 归组、按归一化后的 `command` 去重（`normCmd` 会展开 `$HOME/$USERPROFILE`、统一盘符与斜杠，使两种写法判为同一条），同 command 的托管 hook 若在旧 matcher 桶中则随 snippet 的 matcher 迁移、旧桶空则删除（用于 hook matcher 升级）；snippet 中的 `{{CLAUDE_DIR}}` 占位符合并时替换为目标目录；现有 settings.json 解析失败则中止且不写入；合并结果无变化时不备份、不重写。
 - `scripts/merge-settings.mjs` 既可 CLI 单独运行，也对外导出 `mergeSettings(claudeDir, snippet)`，install.mjs 通过该函数复用同一份逻辑。
 
 ## codegraph-gate hook 行为
 
-`hooks/codegraph-gate.mjs` 经 `settings.snippet.json` 注册为 PreToolUse（`Grep|Glob`）与 PostToolUse（`mcp__codegraph__codegraph_explore`）钩子，payload 经 stdin 传入：
+`hooks/codegraph-gate.mjs` 经 `settings.snippet.json` 注册为 PreToolUse（`Grep|Glob`）与 PostToolUse（`mcp__codegraph__codegraph_explore|mcp__semble__search|mcp__semble__find_related`）钩子，payload 经 stdin 传入：
 
 - 仅在被索引项目内生效：从 cwd 向上最多 25 级寻找含 `.codegraph/codegraph.db` **文件**的目录——只看 `.codegraph/` 目录名会误判 `~/.codegraph` 等其它工具的同名目录；找不到索引，或 payload 无 `session_id`，一律 `exit 0` 放行。
-- 同一 session + 同一索引根下，`codegraph_explore` 计数不足 2 次时，Grep/Glob 被 `exit 2` 阻断（要求先业务自然语言、再技术词各查一次）；达到 2 次放行。
-- 计数存于 `~/.claude/.codegraph-gate-state.json`，按 `session_id::索引根` 隔离，7 天未更新的条目自动清除；状态文件读写失败静默处理，不阻断正常工作。
+- 同一 session + 同一索引根下，CodeGraph（`cg`）与 Semble（`sb`）分别计数、互不合计；两者均不足 2 次时 Grep/Glob 被 `exit 2` 阻断（要求任一漏斗先业务自然语言、再技术词各查一次），任一达到 2 次即放行。未安装 Semble MCP 时 `sb` 恒为 0，自动退化为 CodeGraph 单漏斗，不影响使用。
+- 计数存于 `~/.claude/.codegraph-gate-state.json`，按 `session_id::索引根` 隔离，7 天未更新的条目自动清除；旧格式状态条目缺 `sb` 字段时按 0 处理；状态文件读写失败静默处理，不阻断正常工作。
 - hook 只是强制手段；检索漏斗的规则正文在 `skills/code-change-protocol/SKILL.md` 第 5 节，调整规则时两处需一起考量。
 
 ## 改动本仓库时

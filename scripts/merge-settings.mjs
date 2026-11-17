@@ -4,7 +4,7 @@
  * 规则：
  *   - 已存在的顶层键（env/model/...）一律不动
  *   - permissions.deny / allow 做并集去重
- *   - hooks 按 event 归组、跨 matcher 按归一化 command 去重追加
+ *   - hooks 按 event 归组、跨 matcher 按归一化 command 去重；同 command 随 snippet 的 matcher 迁移
  *
  * 用法：
  *   CLI：node scripts/merge-settings.mjs <snippet.json>
@@ -73,16 +73,24 @@ export function mergeSettings(claudeDir, snippet) {
   }
 
   // hooks：按 event 归组，同 event 下跨所有 matcher 桶按归一化 command 去重
-  // （重叠 matcher 如 Grep 与 Grep|Glob 不再重复注册同一 hook；既有桶的 matcher 不改写）
+  // （重叠 matcher 如 Grep 与 Grep|Glob 不重复注册同一 hook）
+  // 同 command 已在其它 matcher 桶时随 snippet 迁移（旧桶空则删除）；已在同 matcher 桶则跳过，保证重复合并不产生变化
   if (snippet.hooks) {
     settings.hooks ||= {};
     for (const [event, entries] of Object.entries(snippet.hooks)) {
       settings.hooks[event] ||= [];
       for (const entry of entries) {
         for (const h of entry.hooks) {
-          const dup = settings.hooks[event].some((e) =>
+          const dupBucket = settings.hooks[event].find((e) =>
             e.hooks.some((x) => normCmd(x.command) === normCmd(h.command)));
-          if (dup) continue;
+          if (dupBucket) {
+            if (dupBucket.matcher === entry.matcher) continue;
+            dupBucket.hooks = dupBucket.hooks.filter(
+              (x) => normCmd(x.command) !== normCmd(h.command));
+            if (dupBucket.hooks.length === 0) {
+              settings.hooks[event] = settings.hooks[event].filter((e) => e !== dupBucket);
+            }
+          }
           let slot = settings.hooks[event].find((e) => e.matcher === entry.matcher);
           if (!slot) {
             slot = { matcher: entry.matcher, hooks: [] };
